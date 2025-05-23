@@ -6,7 +6,7 @@
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/20 20:40:01 by hisasano          #+#    #+#             */
-/*   Updated: 2025/05/23 17:45:18 by hisasano         ###   ########.fr       */
+/*   Updated: 2025/05/23 20:17:14 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,114 +56,37 @@ ulimit -s
 
 size_t	my_strlen(const char *s)
 {
-	size_t	len;
+	size_t	i;
 
-	len = 0;
+	i = 0;
 	if (!s)
 		return (0);
-	while (s[len])
-		len++;
-	return (len);
+	while (s[i])
+		i++;
+	return (i);
 }
 
-char	*my_strdup(const char *s1)
+char	*my_strdup(const char *s)
 {
 	size_t	len;
 	size_t	i;
 	char	*dup;
 
-	len = my_strlen(s1);
+	len = my_strlen(s);
 	i = 0;
 	dup = malloc(sizeof(char) * (len + 1));
-	if (dup == NULL)
+	if (!dup)
 		return (NULL);
 	while (i < len)
 	{
-		dup[i] = s1[i];
+		dup[i] = s[i];
 		i++;
 	}
 	dup[i] = '\0';
 	return (dup);
 }
 
-void	lstclear_relink(t_fddata **lst)
-{
-	t_fddata	*cur;
-	t_fddata	*next;
-
-	if (!lst || !*lst)
-		return ;
-
-	cur = *lst;
-	while (cur)
-	{
-		next = cur->next;
-		if (cur->prev)
-			cur->prev->next = cur->next;
-		if (cur->next)
-			cur->next->prev = cur->prev;
-        if (cur->buf)
-        {
-            free(cur->buf);
-            cur->buf = NULL;
-        }
-		free(cur);
-
-		cur = next;
-	}
-	*lst = NULL;
-}
-
-static char *ret_str(int fd, t_fddata **lst)
-{
-    t_fddata	*cur;
-    char    *result;
-
-    cur = *lst;
-    result = NULL;
-    while(cur)
-    {
-        if (fd == cur->fd)
-        {
-            result = my_strdup(cur->buf);
-            lstclear_relink(&cur);
-        }
-        cur = cur->next;
-    }
-    return result;
-}
-
-
-t_fddata	*lstadd_back(t_fddata **lst, t_fddata *new)
-{
-	t_fddata	*end;
-
-	if (!lst || !new)
-		return NULL;
-	if (*lst == NULL)
-	{
-		*lst = new;
-		return NULL;
-	}
-	end = *lst;
-	while (end->next != NULL)
-		end = end->next;
-	end->next = new;
-}
-
-t_fddata	*lstnew(int fd, char *content)
-{
-	t_fddata	*lst;
-
-	lst = malloc(sizeof(t_fddata));
-	if (!lst)
-		return (NULL);
-    lst->fd = fd;
-    lst->ret_count = 0; 
-	lst->buf = content;
-	lst->next = NULL;
-	return (lst);
-}
+#include <stdint.h>
 
 char	*my_strjoin(char const *s1, char *s2)
 {
@@ -194,50 +117,140 @@ char	*my_strjoin(char const *s1, char *s2)
 	return (str);
 }
 
+void	*lst_add_back(t_fddata **lst, t_fddata *new)
+{
+	t_fddata	*cur;
+
+	if (!lst || !new)
+		return NULL;
+	if (*lst == NULL)
+	{
+		*lst = new;
+		return NULL;
+	}
+	cur = *lst;
+	while (cur->next)
+		cur = cur->next;
+	cur->next = new;
+	new->prev = cur;
+}
+
+void	lstclear_relink(t_fddata **lst)
+{
+	t_fddata	*cur;
+	t_fddata	*next;
+
+	if (!lst || !*lst)
+		return ;
+
+	cur = *lst;
+	while (cur)
+	{
+		next = cur->next;
+		if (cur->prev)
+			cur->prev->next = cur->next;
+		if (cur->next)
+			cur->next->prev = cur->prev;
+        if (cur->buf)
+        {
+            free(cur->buf);
+            cur->buf = NULL;
+        }
+		free(cur);
+
+		cur = next;
+	}
+	*lst = NULL;
+}
+
+static char *ret_str(int fd, t_fddata *head)
+{
+    for (t_fddata *cur = head; cur; cur = cur->next)
+    {
+        if (cur->fd == fd)
+            return my_strdup(cur->buf);
+    }
+    return NULL;
+}
+
+t_fddata	*lstnew(int fd, char *content)
+{
+	t_fddata	*lst;
+
+	lst = malloc(sizeof(t_fddata));
+	if (!lst)
+		return (NULL);
+    lst->fd = fd;
+    lst->ret_count = 0; 
+	lst->buf = content;
+	lst->next = NULL;
+	return (lst);
+}
+
 #include <stdlib.h>
 
-
-
-t_fddata	*lst_comp(t_fddata *lst, int fd, char *content)
+void	*lst_get_or_create(t_fddata **head, int fd)
 {
-    char *temp;
-	while (lst != NULL)
+    t_fddata *cur;
+	t_fddata *node;
+
+	cur = *head;
+	while (cur)
 	{
-		if (lst->fd == fd)
-		{
-            temp = my_strdup(lst->buf);
-			lst->buf = my_strjoin(temp, content);
-            free(temp);
-			return (lst);
-		}
-		lst = lst->next;
+		if (cur->fd == fd)
+			return cur;
+		cur = cur->next;
 	}
-    return lstadd_back(&lst, lstnew(fd, content));
+	node = malloc(sizeof(t_fddata) * 1);
+	if (!node)
+		return NULL;
+	node->fd = fd;
+    node->buf = my_strdup("");
+	lst_add_back(head, node);
+	return (node);
+}
+
+
+char	*my_strchr(const char *s, int c)
+{
+	int	i;
+
+	i = 0;
+	while (s[i] != (char)c)
+	{
+		if (s[i] == '\0')
+		{
+			return (NULL);
+		}
+		i++;
+	}
+	return ((char *)&s[i]);
 }
 
 // if (lst->ret_count = BUFFER_SIZE)
 //     lst->ret_count = 0;
 char *get_next_line(int fd)
 {
-    char    buf[BUFFER_SIZE];
-    int bytes_read;
-    static t_fddata lst;
-    size_t  i;
+	static t_fddata *head;
+	t_fddata *node;
+    char    buf[BUFFER_SIZE + 1];
+    int b_r;
+	char *tmp;
 
-    bytes_read = 0;
-    i = 0;
-    while ((bytes_read = read(fd, buf, BUFFER_SIZE - 1)) > 0)
+	head = NULL;
+	node = lst_getor_cleate(&head, fd);
+	if (!node)
+		return NULL;
+    while (!my_strchr(node->buf, '\n') && (b_r = read(fd, buf, BUFFER_SIZE)) > 0)
     {
-        buf[BUFFER_SIZE] = '\0';
-        while( buf[i] != '\n' && buf[i] != '\0')
-            i++;
-        if (i != BUFFER_SIZE)
-        {
-            lst.ret_count += i;
-            *lst_comp(&lst, fd, buf);
-            return (ret_str(fd, &lst));
-        }
-        *lst_comp(&lst, fd, buf);
+        buf[b_r] = '\0';
+		tmp = node->buf;
+		node->buf = my_strjoin(tmp, buf);
+		free(tmp);
+		if (!node->buf)
+			return NULL;
+    }
+
     }
     return (ret_str(fd, &lst));
 }
