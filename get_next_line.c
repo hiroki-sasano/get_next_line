@@ -6,7 +6,7 @@
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/20 20:40:01 by hisasano          #+#    #+#             */
-/*   Updated: 2025/05/23 20:17:14 by hisasano         ###   ########.fr       */
+/*   Updated: 2025/05/24 19:52:41 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,16 +117,16 @@ char	*my_strjoin(char const *s1, char *s2)
 	return (str);
 }
 
-void	*lst_add_back(t_fddata **lst, t_fddata *new)
+void	lst_add_back(t_fddata **lst, t_fddata *new)
 {
 	t_fddata	*cur;
 
 	if (!lst || !new)
-		return NULL;
+		return;
 	if (*lst == NULL)
 	{
 		*lst = new;
-		return NULL;
+		return;
 	}
 	cur = *lst;
 	while (cur->next)
@@ -135,61 +135,7 @@ void	*lst_add_back(t_fddata **lst, t_fddata *new)
 	new->prev = cur;
 }
 
-void	lstclear_relink(t_fddata **lst)
-{
-	t_fddata	*cur;
-	t_fddata	*next;
-
-	if (!lst || !*lst)
-		return ;
-
-	cur = *lst;
-	while (cur)
-	{
-		next = cur->next;
-		if (cur->prev)
-			cur->prev->next = cur->next;
-		if (cur->next)
-			cur->next->prev = cur->prev;
-        if (cur->buf)
-        {
-            free(cur->buf);
-            cur->buf = NULL;
-        }
-		free(cur);
-
-		cur = next;
-	}
-	*lst = NULL;
-}
-
-static char *ret_str(int fd, t_fddata *head)
-{
-    for (t_fddata *cur = head; cur; cur = cur->next)
-    {
-        if (cur->fd == fd)
-            return my_strdup(cur->buf);
-    }
-    return NULL;
-}
-
-t_fddata	*lstnew(int fd, char *content)
-{
-	t_fddata	*lst;
-
-	lst = malloc(sizeof(t_fddata));
-	if (!lst)
-		return (NULL);
-    lst->fd = fd;
-    lst->ret_count = 0; 
-	lst->buf = content;
-	lst->next = NULL;
-	return (lst);
-}
-
-#include <stdlib.h>
-
-void	*lst_get_or_create(t_fddata **head, int fd)
+t_fddata	*get_or_make(t_fddata **head, int fd)
 {
     t_fddata *cur;
 	t_fddata *node;
@@ -207,9 +153,8 @@ void	*lst_get_or_create(t_fddata **head, int fd)
 	node->fd = fd;
     node->buf = my_strdup("");
 	lst_add_back(head, node);
-	return (node);
+    return node;
 }
-
 
 char	*my_strchr(const char *s, int c)
 {
@@ -219,16 +164,65 @@ char	*my_strchr(const char *s, int c)
 	while (s[i] != (char)c)
 	{
 		if (s[i] == '\0')
-		{
 			return (NULL);
-		}
 		i++;
 	}
 	return ((char *)&s[i]);
 }
 
-// if (lst->ret_count = BUFFER_SIZE)
-//     lst->ret_count = 0;
+static void lst_remove(t_fddata **head, t_fddata *node)
+{
+    if (!head || !*head || !node) return;
+    if (node->prev) node->prev->next = node->next;
+    if (node->next) node->next->prev = node->prev;
+    if (*head == node) *head = node->next;
+    free(node->buf);
+    free(node);
+}
+
+void	*my_memcpy(void *dst, const void *src, size_t n)
+{
+	size_t			i;
+	unsigned char	*s;
+	unsigned char	*d;
+
+	i = 0;
+	d = (unsigned char *)dst;
+	s = (unsigned char *)src;
+	if (!dst && !src)
+		return (NULL);
+	while (i < n)
+	{
+		d[i] = s[i];
+		i++;
+	}
+	return (dst);
+}
+
+char    *select_line(t_fddata *node)
+{
+    char *new_line;
+    char *nl_p;
+    char *tmp;
+    size_t len;
+
+    nl_p = my_strchr(node->buf, '\n');
+    if (nl_p)
+        len = (nl_p - node->buf - 1);
+    else    
+        len = my_strlen(nl_p);
+    new_line = malloc(sizeof(char) * (len + 1));
+    if (!new_line)
+        return NULL;
+    my_memcpy(new_line, node->buf, len);
+    new_line[len] = '\0';
+    
+    tmp = my_strdup(node->buf + len);
+    free(node->buf);
+    node->buf = tmp;
+    return new_line;
+}
+
 char *get_next_line(int fd)
 {
 	static t_fddata *head;
@@ -238,7 +232,7 @@ char *get_next_line(int fd)
 	char *tmp;
 
 	head = NULL;
-	node = lst_getor_cleate(&head, fd);
+	node = get_or_make(&head, fd);
 	if (!node)
 		return NULL;
     while (!my_strchr(node->buf, '\n') && (b_r = read(fd, buf, BUFFER_SIZE)) > 0)
@@ -250,9 +244,14 @@ char *get_next_line(int fd)
 		if (!node->buf)
 			return NULL;
     }
-
+    if (b_r == 0 && (node->buf == NULL || *node->buf == '\0'))
+    {
+        lst_remove(&head, node);
+        return NULL;
     }
-    return (ret_str(fd, &lst));
+    return select_line(node);
+    //切り出し→残り格納
+
 }
 
 #include <fcntl.h>      // open
