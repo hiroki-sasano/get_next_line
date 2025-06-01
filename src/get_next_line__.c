@@ -6,7 +6,7 @@
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 13:56:07 by hisasano          #+#    #+#             */
-/*   Updated: 2025/05/27 15:13:14 by hisasano         ###   ########.fr       */
+/*   Updated: 2025/05/27 23:22:08 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # define BUFFER_SIZE 4096
 #endif
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -120,43 +121,44 @@ static char	*select_line(char **buf)
 	char	*tmp;
 	size_t	len;
 
-	nl_p = my_strchr(buf, '\n');
+	nl_p = my_strchr(*buf, '\n');
 	if (nl_p)
-		len = (size_t)(nl_p - buf) + 1;
+		len = (size_t)(nl_p - *buf) + 1;
 	else
-		len = my_strlen(buf);
+		len = my_strlen(*buf);
 	new_line = malloc(sizeof(char) * (len + 1));
 	if (!new_line)
 		return (NULL);
-	my_memcpy(new_line, buf, len);
+	my_memcpy(new_line, *buf, len);
 	new_line[len] = '\0';
-	tmp = my_strdup(buf + len);
-	free(buf);
-	buf = tmp;
+	tmp = my_strdup((*buf) + len);
+	free(*buf);
+	*buf = tmp;
 	return (new_line);
 }
 
 char	*get_next_line(int fd)
 {
+	char		*buf;
 	static char	*str;
-	char		*temp;
-	char		buf[BUFFER_SIZE + 1];
-	int			br;
+	char		*tmp;
+	ssize_t		br;
 
+	str = NULL;
+	buf = malloc((size_t)BUFFER_SIZE + 1);
+	if (!buf)
+		return (NULL);
 	br = 1;
-	while (!my_strchr(buf, '\n') && br > 0)
+	while ((str == NULL || !my_strchr(str, '\n')) && br > 0)
 	{
 		br = read(fd, buf, BUFFER_SIZE);
-		if (br <= 0)
-			break ;
+		if (br < 0)
+		{
+			free(buf);
+			return (NULL);
+		}
 		buf[br] = '\0';
-		temp = my_strdup(str);
-		if (!temp)
-			return (NULL);
-		str = my_strjoin(temp, buf);
-		free(temp);
-		if (!str)
-			return (NULL);
 	}
+	free(buf);
 	return (select_line(&str));
 }

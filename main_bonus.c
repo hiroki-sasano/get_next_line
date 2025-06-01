@@ -1,9 +1,9 @@
-#include <fcntl.h>      // open
-#include <stdio.h>      // printf, perror
-#include <stdlib.h>     // free
-#include <unistd.h>     // close
-#include <string.h>     // strcmp
-#include "get_next_line_bonus.h"  // get_next_lineのプロトタイプ
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h> 
+#include "get_next_line_bonus.h"
 
 void test_fd(int fd, const char *label)
 {
