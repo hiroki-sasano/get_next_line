@@ -53,8 +53,11 @@ int main(void)
 {
     int fd1 = open("test1.txt", O_RDONLY);
     int fd2 = open("test2.txt", O_RDONLY);
+    int fd3 = open("test3.txt", O_RDONLY);
+    int fd4 = open("test4.txt", O_RDONLY);
+    int fd5 = open("test5.txt", O_RDONLY);
 
-    if (fd1 == -1 || fd2 == -1)
+    if (fd1 == -1 || fd2 == -1 || fd3 == -1 || fd4 == -1 || fd5 == -1)
     {
         perror("open");
         return 1;
@@ -62,6 +65,10 @@ int main(void)
 
     char *line1 = NULL;
     char *line2 = NULL;
+    char *line3 = NULL;
+    char *line4 = NULL;
+    char *line5 = NULL;
+
     while(1)
     {
 		line1 = get_next_line(fd1);
@@ -78,12 +85,37 @@ int main(void)
             free(line2);
         }
 
-		if (!line1 && !line2)
+        line3 = get_next_line(fd3);
+        if (line3)
+        {
+            printf("file3: %s", line3);
+            free(line3);
+        }
+    
+    	line4 = get_next_line(fd4);
+        if (line4)
+        {
+            printf("file4: %s", line4);
+            free(line4);
+        }
+        
+        line5 = get_next_line(fd5);
+        if (line5)
+        {
+            printf("file5: %s", line5);
+            free(line5);
+        }
+
+
+		if (!line1 && !line2 && !line3 && !line4 && !line5)
 			break;
     }
 
     close(fd1);
     close(fd2);
+    close(fd3);
+    close(fd4);
+    close(fd5);
     return 0;
 }
 
