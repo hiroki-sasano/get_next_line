@@ -6,7 +6,7 @@
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 16:31:08 by hisasano          #+#    #+#             */
-/*   Updated: 2025/06/01 21:01:52 by hisasano         ###   ########.fr       */
+/*   Updated: 2025/06/06 17:52:30 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,32 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-size_t	my_strlen(const char *s)
+size_t	slen_free(t_fddata *n, const char *s, const char *judge, int mode)
 {
 	size_t	i;
 
 	i = 0;
-	if (!s)
+	if (mode == F_NODE)
+	{
+		if (n)
+		{
+			free(n->buf);
+			free(n);
+		}
 		return (0);
-	while (s[i])
-		i++;
-	return (i);
+	}
+	else if (mode == F_STR && !judge)
+	{
+		free((char *)s);
+		return (0);
+	}
+	else if (mode == F_NONE)
+	{
+		while (s[i])
+			i++;
+		return (i);
+	}
+	return (1);
 }
 
 char	*my_strdup(const char *s)
@@ -32,7 +48,7 @@ char	*my_strdup(const char *s)
 	size_t	i;
 	char	*dup;
 
-	len = my_strlen(s);
+	len = slen_free(NULL, s, NULL, F_NONE);
 	i = 0;
 	dup = malloc(sizeof(char) * (len + 1));
 	if (!dup)
@@ -79,7 +95,7 @@ char	*my_strchr(const char *s, int c)
 	return ((char *)&s[i]);
 }
 
-char	*my_strjoin(char const *s1, char *s2)
+char	*my_strjoin(t_fddata *n, char const *s1, char *s2)
 {
 	size_t	i;
 	size_t	j;
@@ -87,9 +103,9 @@ char	*my_strjoin(char const *s1, char *s2)
 
 	if (s1 == NULL || s2 == NULL)
 		return (NULL);
-	if (my_strlen(s1) > (SIZE_MAX - my_strlen(s2) - 1))
+	if (slen_free(n, s1, s1, 0) > (SIZE_MAX - slen_free(n, s2, s2, 0) - 1))
 		return (NULL);
-	str = (char *)malloc(my_strlen(s1) + my_strlen(s2) + 1);
+	str = (char *)malloc(slen_free(n, s1, s1, 0) + slen_free(n, s2, s2, 0) + 1);
 	if (!str)
 		return (NULL);
 	i = 0;

@@ -6,7 +6,7 @@
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/20 20:40:01 by hisasano          #+#    #+#             */
-/*   Updated: 2025/06/05 21:40:11 by hisasano         ###   ########.fr       */
+/*   Updated: 2025/06/06 17:55:02 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,30 +18,30 @@
 # define BUFFER_SIZE 4096
 #endif
 
-static char	*select_line_or_free(t_fddata *node, size_t free_on)
+static char	*select_line_or_free(t_fddata *node, int free_on)
 {
 	char	*new_line;
 	char	*nl_p;
 	char	*tmp;
 	size_t	len;
 
-	if (free_on)
-	{
-		free(node->buf);
-		free(node);
+	if (free_on && !slen_free(node, node->buf, node->buf, 2))
 		return (NULL);
-	}
 	nl_p = my_strchr(node->buf, '\n');
 	if (nl_p)
 		len = (size_t)(nl_p - node->buf) + 1;
 	else
-		len = my_strlen(node->buf);
+		len = slen_free(NULL, node->buf, NULL, F_NONE);
 	new_line = malloc(sizeof(char) * (len + 1));
 	if (!new_line)
 		return (NULL);
 	my_memcpy(new_line, node->buf, len);
+	if (!new_line)
+		return (NULL);
 	new_line[len] = '\0';
 	tmp = my_strdup(node->buf + len);
+	if (!slen_free(node, new_line, tmp, F_STR))
+		return (NULL);
 	free(node->buf);
 	node->buf = tmp;
 	return (new_line);
@@ -93,6 +93,11 @@ static t_fddata	*get_or_make(t_fddata **head, int fd)
 		return (NULL);
 	node->fd = fd;
 	node->buf = my_strdup("");
+	if (!node->buf)
+	{
+		slen_free(node, NULL, NULL, F_NODE);
+		return (NULL);
+	}
 	node->next = NULL;
 	node->prev = NULL;
 	remove_or_add(head, node, 0);
@@ -113,10 +118,13 @@ static int	gnl_refill(t_fddata *node, int fd, char *buf)
 			return (0);
 		buf[br] = '\0';
 		tmp = node->buf;
-		node->buf = my_strjoin(tmp, buf);
-		free(tmp);
+		node->buf = my_strjoin(NULL, tmp, buf);
 		if (!node->buf)
+		{
+			slen_free(node, NULL, NULL, F_NODE);
 			return (-1);
+		}
+		free(tmp);
 	}
 	return (1);
 }
