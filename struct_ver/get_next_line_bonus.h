@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/09 16:23:18 by hisasano          #+#    #+#             */
-/*   Updated: 2025/06/09 21:18:22 by hisasano         ###   ########.fr       */
+/*   Created: 2025/05/20 20:43:37 by hisasano          #+#    #+#             */
+/*   Updated: 2025/06/06 17:54:04 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,24 @@
 # define GET_NEXT_LINE_BONUS_H
 
 # include <stddef.h>
+# define F_NONE 0
+# define F_STR 1
+# define F_NODE 2
 
-char	*get_next_line(int fd);
-size_t	my_strlen(const char *s);
-void	*my_memcpy(void *dst, const void *src, size_t n);
-char	*my_strjoin(char const *s1, char *s2);
-char	*my_strchr(const char *s, int c);
-char	*my_strdup(const char *s);
+typedef struct s_fddata
+{
+	int				fd;
+	char			*buf;
+	struct s_fddata	*prev;
+	struct s_fddata	*next;
+}					t_fddata;
+
+char				*get_next_line(int fd);
+char				*my_strchr(const char *s, int c);
+void				*my_memcpy(void *dst, const void *src, size_t n);
+char				*my_strjoin(t_fddata *n, char const *s1, char *s2);
+char				*my_strdup(const char *s);
+size_t				slen_free(t_fddata *n, const char *s, const char *judge,
+						int mode);
 
 #endif

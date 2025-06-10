@@ -8,12 +8,11 @@
 void test_fd(int fd, const char *label)
 {
     char *line;
-    int line_num = 0;
 
     printf("===== Testing: %s =====\n", label);
     while ((line = get_next_line(fd)) != NULL)
     {
-        printf("[%02d] %s\n", ++line_num, line);
+        printf("%s", line);
         free(line);
     }
     printf("===== End: %s =====\n\n", label);
@@ -49,11 +48,10 @@ int main(int argc, char **argv)
 // 	// int fd = open("test.txt", O_RDONLY);
 
 // 	char *line;
-//     int line_num = 0;
 
 //     line = get_next_line(42);
 //     {
-//         printf("[%02d] %s", ++line_num, line);
+//         printf("%s", line);
 //         free(line);
 //     }
 //     printf("===== End =====\n\n");
@@ -61,4 +59,3 @@ int main(int argc, char **argv)
 // }
 
 // valgrind --leak-check=full ./test_mandatory test.txt
-//ulimit -n fdの同時に開ける最大値参照。

@@ -5,29 +5,62 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: hisasano <hisasano@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/09 17:50:39 by hisasano          #+#    #+#             */
-/*   Updated: 2025/06/09 21:24:46 by hisasano         ###   ########.fr       */
+/*   Created: 2025/05/26 16:31:08 by hisasano          #+#    #+#             */
+/*   Updated: 2025/06/09 17:45:18 by hisasano         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-
-#ifndef BUFFER_SIZE
-# define BUFFER_SIZE 4096
-#endif
-
+#include <stdint.h>
 #include <stdlib.h>
 
-size_t	my_strlen(const char *s)
+size_t	slen_free(t_fddata *n, const char *s, const char *judge, int mode)
 {
 	size_t	i;
 
 	i = 0;
-	if (!s)
+	if (mode == F_NODE)
+	{
+		if (n)
+		{
+			if (n->buf)
+				free(n->buf);
+			free(n);
+		}
 		return (0);
-	while (s[i])
+	}
+	else if (mode == F_STR && !judge)
+	{
+		free((char *)s);
+		return (0);
+	}
+	else if (mode == F_NONE)
+	{
+		while (s[i])
+			i++;
+		return (i);
+	}
+	return (1);
+}
+
+char	*my_strdup(const char *s)
+{
+	size_t	len;
+	size_t	i;
+	char	*dup;
+
+	len = slen_free(NULL, s, NULL, F_NONE);
+	i = 0;
+	dup = malloc(sizeof(char) * (len + 1));
+	if (!dup)
+		return (NULL);
+	while (i < len)
+	{
+		dup[i] = s[i];
 		i++;
-	return (i);
+	}
+	dup[i] = '\0';
+	return (dup);
 }
 
 void	*my_memcpy(void *dst, const void *src, size_t n)
@@ -49,7 +82,21 @@ void	*my_memcpy(void *dst, const void *src, size_t n)
 	return (dst);
 }
 
-char	*my_strjoin(char const *s1, char *s2)
+char	*my_strchr(const char *s, int c)
+{
+	int	i;
+
+	i = 0;
+	while (s[i] != (char)c)
+	{
+		if (s[i] == '\0')
+			return (NULL);
+		i++;
+	}
+	return ((char *)&s[i]);
+}
+
+char	*my_strjoin(t_fddata *n, char const *s1, char *s2)
 {
 	size_t	i;
 	size_t	j;
@@ -57,9 +104,9 @@ char	*my_strjoin(char const *s1, char *s2)
 
 	if (s1 == NULL || s2 == NULL)
 		return (NULL);
-	if (my_strlen(s1) > (SIZE_MAX - my_strlen(s2) - 1))
+	if (slen_free(n, s1, s1, 0) > (SIZE_MAX - slen_free(n, s2, s2, 0) - 1))
 		return (NULL);
-	str = (char *)malloc(my_strlen(s1) + my_strlen(s2) + 1);
+	str = (char *)malloc(slen_free(n, s1, s1, 0) + slen_free(n, s2, s2, 0) + 1);
 	if (!str)
 		return (NULL);
 	i = 0;
@@ -76,38 +123,4 @@ char	*my_strjoin(char const *s1, char *s2)
 	}
 	str[i + j] = '\0';
 	return (str);
-}
-
-char	*my_strchr(const char *s, int c)
-{
-	int	i;
-
-	i = 0;
-	while (s[i] != (char)c)
-	{
-		if (s[i] == '\0')
-			return (NULL);
-		i++;
-	}
-	return ((char *)&s[i]);
-}
-
-char	*my_strdup(const char *s)
-{
-	size_t	len;
-	size_t	i;
-	char	*dup;
-
-	len = my_strlen(s);
-	i = 0;
-	dup = malloc(sizeof(char) * (len + 1));
-	if (!dup)
-		return (NULL);
-	while (i < len)
-	{
-		dup[i] = s[i];
-		i++;
-	}
-	dup[i] = '\0';
-	return (dup);
 }
